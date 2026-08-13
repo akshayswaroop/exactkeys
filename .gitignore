@@ -1,0 +1,16 @@
+node_modules/
+dist/
+*.tsbuildinfo
+validation-test-results.json
+.DS_Store
+lesson-learning-log.jsonl
+lesson-learning-summary.md
+.env
+.env.*
+!.env.example
+
+# Downloaded by `npm run setup:youtube`; keep third-party binaries out of Git.
+tools/yt-dlp_macos
+
+# Copied from the installed Apache-2.0 package, together with its license.
+public/basic-pitch-model/

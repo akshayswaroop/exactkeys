@@ -1,0 +1,38 @@
+{
+  "name": "exactkeys",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Fail-closed MIDI piano notation plus explicitly uncertified YouTube piano drafts.",
+  "scripts": {
+    "predev": "npm run setup:basic-pitch && npm run setup:youtube",
+    "dev": "vite",
+    "prebuild": "npm run setup:basic-pitch",
+    "build": "tsc -b && vite build",
+    "prepreview": "npm run setup:youtube",
+    "preview": "vite preview",
+    "setup:basic-pitch": "node scripts/setup-basic-pitch.mjs",
+    "setup:youtube": "node scripts/setup-youtube.mjs",
+    "test": "vitest run",
+    "test:evidence": "vitest run --reporter=json --outputFile=validation-test-results.json",
+    "test:watch": "vitest",
+    "cli": "node --import tsx src/cli.ts",
+    "hard-test": "node --import tsx scripts/hard-test.mjs"
+  },
+  "dependencies": {
+    "@spotify/basic-pitch": "^1.0.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "fast-xml-parser": "^5.10.1",
+    "tsx": "^4.20.5",
+    "typescript": "~5.9.3",
+    "vite": "^7.2.4",
+    "vitest": "^3.2.4"
+  }
+}

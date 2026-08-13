@@ -73,9 +73,27 @@ export async function transcribeAudioOrYouTubeCli(
     samples[i] = wavBuffer.readInt16LE(dataOffset + i * 2) / 32768.0;
   }
 
-  onProgress?.('Running Spotify Basic Pitch neural model...');
-  const modelUrl = 'http://localhost:5173/basic-pitch-model/model.json';
-  const model = new BasicPitch(modelUrl);
+  onProgress?.('Loading Spotify Basic Pitch neural model from disk...');
+  const packageRoot = resolve(process.cwd(), 'public/basic-pitch-model');
+  const jsonPath = resolve(packageRoot, 'model.json');
+  const shardPath = resolve(packageRoot, 'group1-shard1of1.bin');
+
+  const modelJsonText = await readFile(jsonPath, 'utf8');
+  const shardBuffer = await readFile(shardPath);
+  const modelJson = JSON.parse(modelJsonText);
+
+  const ioHandler = {
+    load: async () => ({
+      modelTopology: modelJson.modelTopology,
+      format: modelJson.format,
+      generatedBy: modelJson.generatedBy,
+      convertedBy: modelJson.convertedBy,
+      weightSpecs: modelJson.weightsManifest[0].weights,
+      weightData: shardBuffer.buffer.slice(shardBuffer.byteOffset, shardBuffer.byteOffset + shardBuffer.byteLength),
+    }),
+  };
+
+  const model = new BasicPitch(ioHandler as unknown as string);
   const frames: number[][] = [];
   const onsets: number[][] = [];
 

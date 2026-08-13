@@ -57,6 +57,7 @@ const EXIT = {
   rejected: 3,
   invalidMidi: 4,
   io: 5,
+  uncertifiedDraft: 6,
   software: 70,
 } as const;
 
@@ -95,6 +96,12 @@ Options:
       --title <text>        Score title
   -h, --help                Show this help
   -v, --version             Show the version
+
+Exit codes:
+  0  certified score written       1  valid MIDI; score abstained
+  2  command-line error             3  audio or non-MIDI rejected
+  4  malformed/unsupported MIDI     5  file-system error
+  6  uncertified draft written     70 internal invariant failure
 `;
 
 async function main(args: string[]): Promise<number> {
@@ -126,7 +133,7 @@ async function main(args: string[]): Promise<number> {
           `Audit ${res.auditPath}`,
         ].join('\n') + '\n',
       );
-      return EXIT.certified;
+      return EXIT.uncertifiedDraft;
     } catch (error) {
       printJsonError({
         status: 'rejected',

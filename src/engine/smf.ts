@@ -116,7 +116,6 @@ function parseTrack(data: Uint8Array): SmfEvent[] {
     }
 
     if (status === 0xff) {
-      running = 0;
       if (i + 1 > data.length) throw new Error('Truncated meta event');
       const metaType = data[i++];
       const len = decodeVlq(data, i);

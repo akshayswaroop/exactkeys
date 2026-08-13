@@ -262,6 +262,12 @@ class BrowserAuditionSession {
       partialGains.push(partialGain);
     }
 
+    if (oscillators.length === 0) {
+      filter.disconnect();
+      envelope.disconnect();
+      return;
+    }
+
     const voice: VoiceNodes = {
       oscillators,
       partialGains,

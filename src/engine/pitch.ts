@@ -83,15 +83,38 @@ export function vexKeyName(key: KeySignature): string {
   return key.minor ? `${n}m` : n;
 }
 
-/** Prefer flats when fifths < 0, sharps otherwise. */
+const KEY_SPELLINGS: Record<number, Array<[Step, number]>> = {
+  7: [['B', 1], ['C', 1], ['C', 2], ['D', 1], ['D', 2], ['E', 1], ['F', 1], ['F', 2], ['G', 1], ['G', 2], ['A', 1], ['A', 2]],
+  6: [['B', 1], ['C', 1], ['D', 0], ['D', 1], ['E', 0], ['E', 1], ['F', 1], ['G', 0], ['G', 1], ['A', 0], ['A', 1], ['B', 0]],
+  5: [['C', 0], ['C', 1], ['D', 0], ['D', 1], ['E', 0], ['E', 1], ['F', 1], ['G', 0], ['G', 1], ['A', 0], ['A', 1], ['B', 0]],
+  4: [['C', 0], ['C', 1], ['D', 0], ['D', 1], ['E', 0], ['F', 0], ['F', 1], ['G', 0], ['G', 1], ['A', 0], ['A', 1], ['B', 0]],
+  3: [['C', 0], ['C', 1], ['D', 0], ['D', 1], ['E', 0], ['F', 0], ['F', 1], ['G', 0], ['G', 1], ['A', 0], ['B', -1], ['B', 0]],
+  2: [['C', 0], ['C', 1], ['D', 0], ['E', -1], ['E', 0], ['F', 0], ['F', 1], ['G', 0], ['G', 1], ['A', 0], ['B', -1], ['B', 0]],
+  1: [['C', 0], ['C', 1], ['D', 0], ['E', -1], ['E', 0], ['F', 0], ['F', 1], ['G', 0], ['G', 1], ['A', 0], ['B', -1], ['B', 0]],
+  0: [['C', 0], ['C', 1], ['D', 0], ['E', -1], ['E', 0], ['F', 0], ['F', 1], ['G', 0], ['G', 1], ['A', 0], ['B', -1], ['B', 0]],
+  '-1': [['C', 0], ['D', -1], ['D', 0], ['E', -1], ['E', 0], ['F', 0], ['F', 1], ['G', 0], ['A', -1], ['A', 0], ['B', -1], ['B', 0]],
+  '-2': [['C', 0], ['D', -1], ['D', 0], ['E', -1], ['E', 0], ['F', 0], ['G', -1], ['G', 0], ['A', -1], ['A', 0], ['B', -1], ['B', 0]],
+  '-3': [['C', 0], ['D', -1], ['D', 0], ['E', -1], ['E', 0], ['F', 0], ['G', -1], ['G', 0], ['A', -1], ['A', 0], ['B', -1], ['B', 0]],
+  '-4': [['C', 0], ['D', -1], ['D', 0], ['E', -1], ['E', 0], ['F', 0], ['G', -1], ['G', 0], ['A', -1], ['A', 0], ['B', -1], ['B', 0]],
+  '-5': [['C', 0], ['D', -1], ['D', 0], ['E', -1], ['E', 0], ['F', 0], ['G', -1], ['G', 0], ['A', -1], ['A', 0], ['B', -1], ['B', 0]],
+  '-6': [['C', 0], ['D', -1], ['D', 0], ['E', -1], ['E', 0], ['F', 0], ['G', -1], ['G', 0], ['A', -1], ['A', 0], ['B', -1], ['C', -1]],
+  '-7': [['C', 0], ['D', -1], ['E', -2], ['E', -1], ['F', -1], ['F', 0], ['G', -1], ['A', -2], ['A', -1], ['B', -2], ['B', -1], ['C', -1]],
+};
+
+/** Key-aware pitch spelling preserving the spelledToMidi round-trip invariant. */
 export function spellPitch(midi: number, key: KeySignature): SpelledPitch {
   if (!Number.isInteger(midi) || midi < 0 || midi > 127) {
     throw new Error(`MIDI pitch out of range: ${midi}`);
   }
   const pc = midi % 12;
-  const octave = Math.floor(midi / 12) - 1;
-  const useFlats = key.fifths < 0;
-  const [step, alter] = (useFlats ? FLAT_SPELLINGS : SHARP_SPELLINGS)[pc];
+  const clampedFifths = Math.max(-7, Math.min(7, key.fifths));
+  const table = KEY_SPELLINGS[clampedFifths] ?? (key.fifths < 0 ? FLAT_SPELLINGS : SHARP_SPELLINGS);
+  const [step, alter] = table[pc];
+
+  let octave = Math.floor(midi / 12) - 1;
+  if (step === 'B' && pc <= 1 && alter > 0) octave -= 1;
+  if (step === 'C' && pc >= 11 && alter < 0) octave += 1;
+
   const acc = alter === 1 ? '#' : alter === -1 ? 'b' : alter === 2 ? '##' : alter === -2 ? 'bb' : '';
   return { step, alter, octave, name: `${step}${acc}${octave}` };
 }

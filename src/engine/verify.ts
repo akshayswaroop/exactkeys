@@ -53,8 +53,8 @@ export function verifyEventRoundTrip(performance: Performance): EventVerificatio
     const output = multiset(reparsed.notes.map(noteTuple));
     let matched = 0;
     for (const [tuple, count] of source) matched += Math.min(count, output.get(tuple) ?? 0);
-    accuracy = Math.max(source.size, output.size) === 0
-      ? 0
+    accuracy = Math.max(performance.notes.length, reparsed.notes.length) === 0
+      ? 1
       : matched / Math.max(performance.notes.length, reparsed.notes.length);
     if (accuracy < 1) reasons.push('Normalised MIDI did not preserve every claimed note-event tuple.');
   } catch (error) {

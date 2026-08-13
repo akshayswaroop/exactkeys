@@ -1,5 +1,6 @@
 import type { NoteEventTime } from '@spotify/basic-pitch';
 import {
+  estimateKeySignature,
   transcribePerformance,
   type Performance,
   type PerformedNote,
@@ -103,10 +104,12 @@ export async function transcribeYouTubePiano(
   onProgress({ stage: 'building', progress: 0.94, detail: 'Building an editable, uncertified note draft' });
   const bpm = finiteBpm(options.tempoBpm);
   const performance = performanceFromDetectedNotes(detected, audio.title, bpm, options.timeSignature ?? { numerator: 4, denominator: 4 });
+  const estimatedKey = options.key ?? estimateKeySignature(performance.notes);
   const transcript = transcribePerformance(performance, {
     ...options,
     tempoBpm: bpm,
     timeSignature: options.timeSignature ?? { numerator: 4, denominator: 4 },
+    key: estimatedKey,
     title: options.title || audio.title,
   });
   onProgress({ stage: 'building', progress: 1, detail: `Draft ready · ${performance.notes.length.toLocaleString()} inferred notes` });
@@ -188,13 +191,14 @@ function performanceFromDetectedNotes(
     return { ...note, onsetTick, offsetTick };
   });
   const durationSec = notes.reduce((maximum, note) => Math.max(maximum, note.offsetSec), 0);
+  const keyEst = estimateKeySignature(notes);
   return {
     ticksPerQuarter,
     notes,
     pedals: [],
     tempoEvents: [{ tick: 0, usPerQuarter: Math.round(60_000_000 / bpm) }],
     timeSignatures: [{ tick: 0, ...meter }],
-    keySignatures: [],
+    keySignatures: [{ tick: 0, fifths: keyEst.fifths, minor: keyEst.minor }],
     programEvents: [
       { tick: 0, channel: 0, track: 0, program: 0 },
       { tick: 0, channel: 0, track: 1, program: 0 },

@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { parseSmf } from '../src/engine/smf';
 import { smfToPerformance } from '../src/engine/performance';
 import { spellPitch, spelledToMidi } from '../src/engine/pitch';
+import { estimateKeySignature } from '../src/engine/keyEstimation';
+import { assignMeasureVoices } from '../src/engine/voiceLeading';
 import { verifyEventRoundTrip } from '../src/engine/verify';
 import { transcribePerformance } from '../src/engine/transcribe';
 import { createAuditionPlan, startAudition } from '../src/audition';
@@ -125,5 +127,39 @@ describe('Material quality & accuracy improvements', () => {
     expect(mockFilter.disconnect).toHaveBeenCalled();
     expect(mockEnvelope.disconnect).toHaveBeenCalled();
     handle.stop();
+  });
+
+  it('6. estimates key signature accurately from pitch-class duration profiles', () => {
+    // E major scale pitches: E4 (64), F#4 (66), G#4 (68), A4 (69), B4 (71), C#5 (73), D#5 (75)
+    const eMajorNotes = [64, 66, 68, 69, 71, 73, 75].map((pitch, idx) => ({
+      id: `note-${idx}`,
+      pitch,
+      velocity: 80,
+      channel: 0,
+      track: 0,
+      onsetTick: idx * 480,
+      offsetTick: (idx + 1) * 480,
+      onsetSec: idx * 0.5,
+      offsetSec: (idx + 1) * 0.5,
+    }));
+
+    const keyEst = estimateKeySignature(eMajorNotes);
+    expect(keyEst.fifths).toBe(4); // 4 sharps = E major
+    expect(keyEst.minor).toBe(false);
+  });
+
+  it('7. assigns distinct MusicXML voices to overlapping notes on the same staff', () => {
+    const quantizedNotes = [
+      // Upper melody note starting at beat 0, duration 1 beat
+      { id: 'note-upper', pitch: 72, velocity: 80, staff: 1, onsetBeats: 0, durationBeats: 1, spelled: { name: 'C5', step: 'C', alter: 0, octave: 5 } },
+      // Sustained lower pedal note starting at beat 0, duration 4 beats (overlaps with next notes)
+      { id: 'note-lower', pitch: 60, velocity: 80, staff: 1, onsetBeats: 0, durationBeats: 4, spelled: { name: 'C4', step: 'C', alter: 0, octave: 4 } },
+      // Second melody note starting at beat 1, duration 1 beat (overlaps with sustained lower note)
+      { id: 'note-mel2', pitch: 74, velocity: 80, staff: 1, onsetBeats: 1, durationBeats: 1, spelled: { name: 'D5', step: 'D', alter: 0, octave: 5 } },
+    ];
+
+    const voiceMap = assignMeasureVoices(quantizedNotes as any);
+    expect(voiceMap.get('note-upper')).toBe(1);
+    expect(voiceMap.get('note-lower')).toBe(2); // Lower sustained note assigned Voice 2
   });
 });

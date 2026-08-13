@@ -13,3 +13,5 @@ export * from './transcribe';
 export * from './exportMidi';
 export * from './xml';
 export * from './verify';
+export * from './keyEstimation';
+export * from './voiceLeading';

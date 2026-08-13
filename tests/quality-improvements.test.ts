@@ -101,51 +101,29 @@ describe('Material quality & accuracy improvements', () => {
     expect(transcript.musicxml).toContain('<alter>1</alter>');
   });
 
-  it('5. disconnects audio nodes immediately without leaking voices when no partials fall below Nyquist', () => {
+  it('5. disconnects audio nodes immediately without leaking voices when no partials fall below Nyquist', async () => {
     const mockFilter = { connect: vi.fn(), disconnect: vi.fn(), frequency: { setValueAtTime: vi.fn() }, Q: { value: 0 } };
     const mockEnvelope = { connect: vi.fn(), disconnect: vi.fn(), gain: { setValueAtTime: vi.fn(), linearRampToValueAtTime: vi.fn(), setTargetAtTime: vi.fn() } };
     const mockMaster = { connect: vi.fn(), disconnect: vi.fn(), gain: { value: 0 } };
+    const mockCompressor = { connect: vi.fn(), disconnect: vi.fn(), threshold: { value: 0 }, knee: { value: 0 }, ratio: { value: 0 }, attack: { value: 0 }, release: { value: 0 } };
 
     const mockContext = {
       currentTime: 0,
       sampleRate: 4000, // Nyquist is 2000 Hz
       destination: {},
-      createGain: vi.fn(() => mockEnvelope),
+      createGain: vi.fn().mockImplementationOnce(() => mockMaster).mockImplementation(() => mockEnvelope),
       createBiquadFilter: vi.fn(() => mockFilter),
-      createDynamicsCompressor: vi.fn(() => ({ threshold: { value: 0 }, knee: { value: 0 }, ratio: { value: 0 }, attack: { value: 0 }, release: { value: 0 }, connect: vi.fn() })),
-    };
+      createDynamicsCompressor: vi.fn(() => mockCompressor),
+      createOscillator: vi.fn(),
+    } as unknown as AudioContext;
 
     // Pitch 100 has fundamental 2637 Hz, which is > 2000 Hz Nyquist
-    const planNote = {
-      sourceIndex: 0,
-      pitch: 100,
-      velocity: 80,
-      frequencyHz: 2637,
-      gain: 0.5,
-      startSec: 0,
-      endSec: 1,
-    };
+    const handle = await startAudition([
+      { sourceIndex: 0, pitch: 100, velocity: 80, onsetSec: 0, offsetSec: 0.5 },
+    ], undefined, { context: mockContext });
 
-    // Directly execute scheduleNote logic with low sample rate context
-    const harmonicPartials = [
-      { ratio: 1, level: 1, type: 'triangle' },
-      { ratio: 2, level: 0.16, type: 'sine' },
-      { ratio: 3, level: 0.055, type: 'sine' },
-    ];
-    const nyquist = mockContext.sampleRate / 2;
-    const oscillators: any[] = [];
-    for (const partial of harmonicPartials) {
-      if (planNote.frequencyHz * partial.ratio >= nyquist) continue;
-      oscillators.push({});
-    }
-
-    if (oscillators.length === 0) {
-      mockFilter.disconnect();
-      mockEnvelope.disconnect();
-    }
-
-    expect(oscillators).toHaveLength(0);
     expect(mockFilter.disconnect).toHaveBeenCalled();
     expect(mockEnvelope.disconnect).toHaveBeenCalled();
+    handle.stop();
   });
 });

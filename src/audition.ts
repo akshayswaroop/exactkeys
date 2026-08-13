@@ -360,6 +360,7 @@ function inertHandle(durationSec: number): AuditionHandle {
 export async function startAudition(
   notes: readonly AuditionInputNote[],
   onEnded?: () => void,
+  options?: { context?: AudioContext },
 ): Promise<AuditionHandle> {
   const plan = createAuditionPlan(notes);
   const generation = ++startGeneration;
@@ -371,8 +372,8 @@ export async function startAudition(
     return inertHandle(0);
   }
 
-  const context = getAudioContext();
-  if (context.state !== 'running') await context.resume();
+  const context = options?.context ?? getAudioContext();
+  if (context.state !== 'running' && typeof context.resume === 'function') await context.resume();
 
   // Another click may have replaced this request while audio permission was
   // resolving. Such a stale request must never start or stop the newer source.

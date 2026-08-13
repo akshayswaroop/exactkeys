@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import {
-  isAudioFilename,
   isRejection,
   performanceToMidi,
   rejectIfNotMidi,
@@ -13,7 +12,6 @@ import {
   type Transcript,
   type TranscribeOptions,
 } from './engine/index';
-import { transcribeAudioOrYouTubeCli } from './nodeTranscribe';
 
 /*
  * The browser build deliberately has no dependency on @types/node. Keep the
@@ -57,7 +55,6 @@ const EXIT = {
   rejected: 3,
   invalidMidi: 4,
   io: 5,
-  uncertifiedDraft: 6,
   software: 70,
 } as const;
 
@@ -79,10 +76,11 @@ class CliError extends Error {
 
 const HELP = `ExactKeys ${VERSION}
 
-Fail-closed, MIDI-relative piano notation plus explicitly uncertified YouTube/audio piano drafts.
+Fail-closed, MIDI-relative piano notation. Audio is never transcribed.
 
 Usage:
-  npm run cli -- <input.mid|youtube_url|audio_file> [options]
+  npm run cli -- <input.mid> [options]
+  node --import tsx src/cli.ts <input.mid> [options]
 
 Options:
   -o, --out-dir <dir>       Output directory (default: input directory)
@@ -97,11 +95,17 @@ Options:
   -h, --help                Show this help
   -v, --version             Show the version
 
+For a parseable input the CLI always writes:
+  <name>.normalized.mid     Canonical supported MIDI events
+  <name>.audit.json         Verification evidence and abstention reasons
+
+It writes <name>.musicxml and <name>.notes.csv only for a certified score.
+
 Exit codes:
   0  certified score written       1  valid MIDI; score abstained
   2  command-line error             3  audio or non-MIDI rejected
   4  malformed/unsupported MIDI     5  file-system error
-  6  uncertified draft written     70 internal invariant failure
+  70 internal invariant failure
 `;
 
 async function main(args: string[]): Promise<number> {
@@ -115,38 +119,8 @@ async function main(args: string[]): Promise<number> {
   }
 
   const cli = parseArgs(args);
-  const isUrl = /^https?:\/\//i.test(cli.input);
-  const inputPath = isUrl ? cli.input : path.resolve(process.cwd(), cli.input);
-  const filename = isUrl ? cli.input : path.basename(inputPath);
-
-  if (isUrl || isAudioFilename(filename)) {
-    const outDir = path.resolve(process.cwd(), cli.outDir ?? (isUrl ? process.cwd() : path.dirname(inputPath)));
-    try {
-      const res = await transcribeAudioOrYouTubeCli(cli.input, outDir, cli.transcribe, (msg) => {
-        process.stderr.write(`${msg}\n`);
-      });
-      process.stdout.write(
-        [
-          `UNCERTIFIED AUDIO DRAFT (${res.title})`,
-          `XML   ${res.musicXmlPath}`,
-          `MIDI  ${res.midiPath}`,
-          `Audit ${res.auditPath}`,
-        ].join('\n') + '\n',
-      );
-      return EXIT.uncertifiedDraft;
-    } catch (error) {
-      printJsonError({
-        status: 'rejected',
-        exitCode: EXIT.rejected,
-        rejection: {
-          code: 'audio-below-threshold',
-          reason: errorMessage(error),
-          filename,
-        },
-      });
-      return EXIT.rejected;
-    }
-  }
+  const inputPath = path.resolve(process.cwd(), cli.input);
+  const filename = path.basename(inputPath);
 
   const namedRejection = rejectIfNotMidi(filename);
   if (namedRejection) {

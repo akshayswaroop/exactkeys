@@ -130,6 +130,7 @@ A green CI run is necessary but not sufficient. Tests that encode the wrong prod
 - Do not call a heuristic “accurate” without a named ground truth, metric, denominator, tolerance, and measured result.
 - Do not merge with unresolved P0/P1 accuracy, data-loss, misleading-claim, cleanup, or contract findings.
 - Do not weaken a gate merely to make a fixture, demo, or CI run pass.
+- **Squash Merge Message Discipline**: Squash merges MUST NOT dump raw intermediate commit histories into the squash commit body. When merging via `gh` CLI, specify explicit `--subject` and `--body` flags. In GitHub repository settings, configure squash merge default to PR Title and Description.
 
 ## Public repository hygiene
 

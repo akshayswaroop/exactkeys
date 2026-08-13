@@ -47,10 +47,7 @@ export function smfToPerformance(
   const open = new Map<string, OpenNote[]>();
 
   smf.tracks.forEach((track, trackIndex) => {
-    const sortedEvents = [...track.events].sort(
-      (a, b) => a.tick - b.tick || rankEvent(a) - rankEvent(b),
-    );
-    for (const ev of sortedEvents) {
+    for (const ev of track.events) {
       if (ev.type === 'meta') {
         if (ev.meta.type === 'tempo') tempoEvents.push({ tick: ev.tick, usPerQuarter: ev.meta.usPerQuarter });
         if (ev.meta.type === 'timeSignature') {
@@ -284,14 +281,5 @@ export function primaryTempoBpm(perf: Performance): number {
 export function collectAllEvents(smf: SmfFile): SmfEvent[] {
   const all: SmfEvent[] = [];
   for (const t of smf.tracks) all.push(...t.events);
-  return all.sort((a, b) => a.tick - b.tick || rankEvent(a) - rankEvent(b));
-}
-
-function rankEvent(ev: SmfEvent): number {
-  if (ev.type === 'meta') return -2;
-  if (ev.type === 'cc') return -1;
-  if (ev.type === 'noteOff') return 0;
-  if (ev.type === 'noteOn' && ev.velocity === 0) return 0;
-  if (ev.type === 'noteOn') return 1;
-  return 2;
+  return all.sort((a, b) => a.tick - b.tick);
 }

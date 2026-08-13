@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
-import { access, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { basename, extname, join, parse, resolve } from 'node:path';
+import { basename, join, parse, resolve } from 'node:path';
 import { BasicPitch, noteFramesToTime, outputToNotesPoly } from '@spotify/basic-pitch';
 import { audioDraftTestables } from './audioTranscription';
 import { transcribePerformance } from './engine/transcribe';

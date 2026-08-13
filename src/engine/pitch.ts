@@ -101,7 +101,14 @@ const KEY_SPELLINGS: Record<number, Array<[Step, number]>> = {
   '-7': [['C', 0], ['D', -1], ['E', -2], ['E', -1], ['F', -1], ['F', 0], ['G', -1], ['A', -2], ['A', -1], ['B', -2], ['B', -1], ['C', -1]],
 };
 
-/** Key-aware pitch spelling preserving the spelledToMidi round-trip invariant. */
+/**
+ * Deterministic key-aware pitch spelling heuristic for circle-of-fifths key signatures (-7..+7).
+ *
+ * Diatonic note steps are chosen according to key signature context. Because full harmonic,
+ * melodic, and voice-leading analysis is unavailable, chromatic spelling relies on this stable
+ * per-fifths lookup while maintaining the exact `spelledToMidi(spellPitch(midi, key)) === midi`
+ * pitch-preservation invariant for all MIDI pitches 0..127.
+ */
 export function spellPitch(midi: number, key: KeySignature): SpelledPitch {
   if (!Number.isInteger(midi) || midi < 0 || midi > 127) {
     throw new Error(`MIDI pitch out of range: ${midi}`);
